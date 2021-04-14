@@ -4,10 +4,24 @@ import {types, typesBundleForPolkadot} from "@crustio/type-definitions";
 import Scanner from "@open-web3/scanner";
 import {logger} from "../util/logger";
 import {NextFunction} from "express";
+import {MongoClient} from "mongodb";
+import {Pool} from "generic-pool";
+import {createMongodbPool} from "../util/db";
 
 let provider: WsProvider = newWsProvider();
+
+/**
+ * CRU链API调用
+ */
 let api: ApiPromise = newApiPromise(provider);
+/**
+ * CRU链浏览使用
+ */
 let scanner: Scanner = newScanner(provider);
+/**
+ * MONGODB数据库连接池
+ */
+let dbPool: Pool<MongoClient> = createMongodbPool();
 
 /**
  * 初始化websocket服务
@@ -37,6 +51,10 @@ export const getApi = (): ApiPromise => {
 
 export const getScanner = (): Scanner => {
     return scanner;
+}
+
+export const getDBConnection = (): PromiseLike<MongoClient> => {
+    return dbPool.acquire();
 }
 
 export async function withApiReady(fn: Function, next: NextFunction) {

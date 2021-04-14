@@ -43,13 +43,13 @@ async function startHttpServer() {
         next();
     };
 
-    app.use(bodyParser.json({limit: String(env.HTTP_PARAMETER_LIMIT)}));
-    app.use(bodyParser.urlencoded({limit: String(env.HTTP_PARAMETER_LIMIT), extended: true}));
+    app.use(bodyParser.json({limit: env.HTTP_PARAMETER_LIMIT}));
+    app.use(bodyParser.urlencoded({limit: env.HTTP_PARAMETER_LIMIT, extended: true}));
     app.use(bodyParser.json());
     app.use(responseHandler);
 
     // 超时处理
-    app.use(timeout(String(env.HTTP_TIMEOUT)));
+    app.use(timeout(env.HTTP_TIMEOUT));
 
     // 设置路由
     app.post('/api/v1/wallet/generate', wallet.generate);
