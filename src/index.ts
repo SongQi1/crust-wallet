@@ -6,6 +6,7 @@ import {logger} from "./util/logger";
 import {env} from "./core/env";
 import * as services from './core/services';
 import {wallet} from "./core/wallet";
+import {trade} from "./core/trade";
 
 async function startHttpServer() {
     const app = express();
@@ -52,6 +53,7 @@ async function startHttpServer() {
     // 设置路由
     app.post('/api/v1/wallet/generate', wallet.generate);
     app.post('/api/v1/wallet/balance', wallet.balance);
+    app.post('/api/v1/trade/transfer', trade.transfer);
 
     // 异常处理
     app.use(errorHandler);
