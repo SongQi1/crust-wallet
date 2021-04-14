@@ -7,6 +7,7 @@ import {env} from "./core/env";
 import * as services from './core/services';
 import {wallet} from "./core/wallet";
 import {trade} from "./core/trade";
+import {startBlocksSchedule} from "./core/listener";
 
 async function startHttpServer() {
     const app = express();
@@ -69,6 +70,8 @@ async function startHttpServer() {
 
 startHttpServer().then(() => {
     logger.info('HTTP服务启动完成');
+    // 开启轮询获取block信息，然后写入到mongodb数据库中
+    startBlocksSchedule();
 }).catch((error) => {
     logger.error(`HTTP服务启动失败，错误信息:${error}`);
 });

@@ -3,8 +3,17 @@
  *
  * @param obj
  */
-export function toStringJson(obj: any) {
+export function toJsonString(obj: any) {
     return !obj ? '' : JSON.stringify(obj);
+}
+
+/**
+ * 获取json对象
+ *
+ * @param string
+ */
+export function toJson(string: string) {
+    return string ? JSON.parse(string) : {};
 }
 
 /**
@@ -57,4 +66,28 @@ export function base64ToStr(base64: string): string {
 export function base64ToJson(base64: string): any {
     const jsonStr = base64ToStr(base64);
     return JSON.parse(jsonStr);
+}
+
+/**
+ * 判断是否为空
+ *
+ * @param obj
+ */
+export function isEmpty(obj: any) {
+    if (!obj) {
+        return true;
+    }
+
+    if (typeof obj === 'undefined') {
+        return true;
+    }
+
+    if (typeof obj === 'string') {
+        if ("" === obj) {
+            return true;
+        }
+        const reg = new RegExp("^([ ]+)|([　]+)$");
+        return reg.test(obj);
+    }
+    return false;
 }
