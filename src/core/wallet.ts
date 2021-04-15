@@ -3,15 +3,15 @@ import {cryptoWaitReady, mnemonicGenerate} from '@polkadot/util-crypto';
 import {Keyring} from '@polkadot/keyring';
 import {jsonToBase64} from "../util/string_utils";
 import {NextFunction, Request, Response} from "express";
-import {withApiReady} from "./services";
+import {withApiReady, withSimple} from "./services";
 
 /**
  * 服务
  */
 export const wallet = {
     generate: (req: Request, res: Response, next: NextFunction) => {
-        withApiReady(async (api: ApiPromise) => {
-            res.json(await generate(api));
+        withSimple(async () => {
+            res.json(await generate());
         }, next)
     },
     balance: (req: Request, res: Response, next: NextFunction) => {
@@ -29,10 +29,8 @@ interface GenerateResult {
 
 /**
  * 创建钱包地址
- *
- * @param api
  */
-async function generate(api: ApiPromise) {
+async function generate() {
     // 等待库加载
     await cryptoWaitReady();
     // 生成助记词

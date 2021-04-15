@@ -61,6 +61,15 @@ export const releaseDBConnection = (client: MongoClient): PromiseLike<any> => {
     return dbPool.release(client);
 }
 
+export async function withSimple(fn: Function, next: NextFunction) {
+    try {
+        await fn();
+        next();
+    } catch (err) {
+        next(err);
+    }
+}
+
 export async function withApiReady(fn: Function, next: NextFunction) {
     const api = getApi();
     if (!api || !api.isConnected) {

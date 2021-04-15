@@ -8,6 +8,7 @@ import * as services from './core/services';
 import {wallet} from "./core/wallet";
 import {trade} from "./core/trade";
 import {startBlocksSchedule} from "./core/listener";
+import {local} from "./core/local";
 
 async function startHttpServer() {
     const app = express();
@@ -55,6 +56,7 @@ async function startHttpServer() {
     app.post('/api/v1/wallet/generate', wallet.generate);
     app.post('/api/v1/wallet/balance', wallet.balance);
     app.post('/api/v1/trade/transfer', trade.transfer);
+    app.post('/api/v1/local/txn/query', local.queryTxnByHash);
 
     // 异常处理
     app.use(errorHandler);

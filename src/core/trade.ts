@@ -22,14 +22,14 @@ export const trade = {
     },
 }
 
-export interface TransferRequest {
+interface TransferRequest {
     from: string,
     to: string,
     amount: number,
     privateKey: string
 }
 
-export interface TransferResult {
+interface TransferResult {
     from: string,
     to: string,
     amount: number,
@@ -46,7 +46,7 @@ export interface TransferResult {
  * @param api
  * @param request
  */
-export async function transfer(api: ApiPromise, request: TransferRequest): Promise<TransferResult> {
+async function transfer(api: ApiPromise, request: TransferRequest): Promise<TransferResult> {
     await cryptoWaitReady();
     const keyring = new Keyring({type: 'sr25519'});
     const pair = keyring.addFromJson(base64ToJson(request.privateKey));
@@ -74,7 +74,7 @@ export async function transfer(api: ApiPromise, request: TransferRequest): Promi
         });
 }
 
-export interface SendTxResult {
+interface SendTxResult {
     status: string,
     message?: string,
     txnHash: string,
@@ -89,7 +89,7 @@ export interface SendTxResult {
  * @param {SubmittableExtrinsic} tx
  * @param krp
  */
-export async function sendTx(
+async function sendTx(
     tx: SubmittableExtrinsic,
     krp: AddressOrPair
 ): Promise<SendTxResult> {

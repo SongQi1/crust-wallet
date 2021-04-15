@@ -32,6 +32,7 @@ export const startBlocksSchedule = (): void => {
 
         // 当前CRU最新高度
         const blockAt = await scanner.getBlockAt();
+        logger.info(`CRU链上最新高度为:${blockAt.blockNumber}`);
 
         let startHeight: number;
         // 1）文件不存在，2）文件内容为空
@@ -81,15 +82,17 @@ export const startBlocksSchedule = (): void => {
             // 二维降为一维
             const records = [].concat(...array);
 
-            const saveArray: Array<Promise<number>> = [];
+            const saveArray: Array<Promise<any>> = [];
             for (let i = 0; i <= records.length; ++i) {
-                logger.info(`记录:${records[i]}`);
-                saveArray.push(asyncSaveRecord(records[i]));
+                const record: any = records[i];
+                if (!record || isEmpty(record.hash)) {
+                    continue;
+                }
+                saveArray.push(asyncSaveRecord(record));
             }
 
             Promise.all(saveArray).then(([...array]) => {
-                const cnt = array.reduce((l, r) => l + r);
-                logger.info(`数据库插入成功，影响行数${cnt}，更新CRU同步位点：${endHeight + 1}`);
+                logger.info(`数据库插入成功，更新CRU同步位点：${endHeight + 1}`);
                 writeRecord(env.LOCUS_RECORD_FILE, toJsonString(<LocusRecord>{
                     locus: endHeight + 1
                 }));
@@ -112,8 +115,8 @@ interface LocusRecord {
  *
  * @param record
  */
-async function asyncSaveRecord(record: any): Promise<number> {
-    return new Promise<number>((resolve, reject) => {
+async function asyncSaveRecord(record: any): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
         acquireDBConnection().then(function (client) {
             client.db(env.CRU_TXN_RECORD_DB)
                 .collection(env.CRU_TXN_RECORD_COLLECTION)
@@ -124,7 +127,7 @@ async function asyncSaveRecord(record: any): Promise<number> {
                         if (err) {
                             reject(err);
                         } else {
-                            resolve(result.modifiedCount);
+                            resolve(result);
                             releaseDBConnection(client);
                         }
                     });
