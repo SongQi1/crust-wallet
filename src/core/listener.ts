@@ -4,7 +4,6 @@ import {scheduleJob} from 'node-schedule';
 import {acquireDBConnection, getScanner, releaseDBConnection} from "./services";
 import {readRecord, writeRecord} from "../util/record";
 import {isEmpty, toJson, toJsonString} from "../util/string_utils";
-import {MongoClient} from "mongodb";
 
 /**
  * 开启监听CRU链交易信息
