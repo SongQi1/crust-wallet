@@ -53,8 +53,12 @@ export const getScanner = (): Scanner => {
     return scanner;
 }
 
-export const getDBConnection = (): PromiseLike<MongoClient> => {
+export const acquireDBConnection = (): PromiseLike<MongoClient> => {
     return dbPool.acquire();
+}
+
+export const releaseDBConnection = (client: MongoClient): PromiseLike<any> => {
+    return dbPool.release(client);
 }
 
 export async function withApiReady(fn: Function, next: NextFunction) {

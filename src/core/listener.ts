@@ -1,10 +1,10 @@
 import {logger} from "../util/logger";
 import {env} from "./env";
 import {scheduleJob} from 'node-schedule';
-import {getDBConnection, getScanner} from "./services";
+import {acquireDBConnection, getScanner, releaseDBConnection} from "./services";
 import {readRecord, writeRecord} from "../util/record";
 import {isEmpty, toJson, toJsonString} from "../util/string_utils";
-import {Block} from "@open-web3/scanner/types";
+import {MongoClient} from "mongodb";
 
 /**
  * 开启监听CRU链交易信息
@@ -63,61 +63,73 @@ export const startBlocksSchedule = (): void => {
 
         logger.info(`CRU开始加载${startHeight}~${endHeight}之间的交易消息`);
 
-        const requestArray: any = [];
+        const requestArray: Array<Promise<any>> = [];
         for (let i = startHeight; i <= endHeight; ++i) {
-            requestArray.push(scanner.getBlockDetail({blockNumber: startHeight})
-                .then((block: Block) => {
-                    return new Promise((resolve, reject) => {
-                        // 遍历交易列表
-                        block.extrinsics?.forEach((extrinsic) => {
-                            // 准备好记录
-                            const record = Object.assign(extrinsic, {
-                                blockNumber: block.number,
-                                blockHash: block.hash,
-                                blockTimestamp: block.timestamp,
-                                author: block.author
-                            })
-
-                            if (env.SHOW_INSERT_RECORD) {
-                                // 不存在则插入，存在则更新
-                                logger.info(`数据库执行插入记录:${toJsonString(record)}`);
-                            }
-
-                            // 获取数据库连接
-                            const connection = getDBConnection();
-                            connection.then(function (client) {
-                                // 获取连接成功
-                                const conn = client.db(env.CRU_TXN_RECORD_DB).collection(env.CRU_TXN_RECORD_COLLECTION);
-                                conn.updateOne({hash: record.hash}, {$set: record}, {upsert: true}, (err, result) => {
-                                    if (err) {
-                                        logger.error(`数据库执行插入失败，错误信息:${err}`);
-                                        reject(err)
-                                    }
-                                });
-                            }, function () {
-                                const error = '获取mongodb数据库连接失败，本次写入会失败，不更新位点，下次继续消费（连接池中已经处理了连接获取失败后的重试，根据生产运行情况调整连接池参数）';
-                                logger.error(error);
-                                reject(new Error(error));
-                            });
-                        });
-                        // 所有处理成功才会OK
-                        resolve(true);
-                    });
-                }));
+            requestArray.push(scanner.getBlockDetail({blockNumber: startHeight}).then((block) =>
+                block.extrinsics?.map((extrinsic) =>
+                    Object.assign(extrinsic, {
+                        blockNumber: block.number,
+                        blockHash: block.hash,
+                        blockTimestamp: block.timestamp,
+                        author: block.author
+                    })
+                )
+            ));
         }
-        await Promise.all(requestArray as [Promise<void>]).then(() => {
-            logger.info(`更新CRU同步位点：${endHeight + 1}`);
-            // 所有执行成功，更新位点
-            writeRecord(env.LOCUS_RECORD_FILE, toJsonString(<LocusRecord>{
-                locus: endHeight + 1
-            }));
+
+        Promise.all(requestArray).then(([...array]) => {
+            // 二维降为一维
+            const records = [].concat(...array);
+
+            const saveArray: Array<Promise<number>> = [];
+            for (let i = 0; i <= records.length; ++i) {
+                logger.info(`记录:${records[i]}`);
+                saveArray.push(asyncSaveRecord(records[i]));
+            }
+
+            Promise.all(saveArray).then(([...array]) => {
+                const cnt = array.reduce((l, r) => l + r);
+                logger.info(`数据库插入成功，影响行数${cnt}，更新CRU同步位点：${endHeight + 1}`);
+                writeRecord(env.LOCUS_RECORD_FILE, toJsonString(<LocusRecord>{
+                    locus: endHeight + 1
+                }));
+            }).catch((error) => {
+                logger.error(`交易记录保存失败，不更新位点，错误信息：${error}`);
+            });
         });
     });
-}
+};
 
 /**
  * 位点记录结构
  */
 interface LocusRecord {
     locus: number
+}
+
+/**
+ * 异步保存到数据库
+ *
+ * @param record
+ */
+async function asyncSaveRecord(record: any): Promise<number> {
+    return new Promise<number>((resolve, reject) => {
+        acquireDBConnection().then(function (client) {
+            client.db(env.CRU_TXN_RECORD_DB)
+                .collection(env.CRU_TXN_RECORD_COLLECTION)
+                .updateOne({hash: record.hash},
+                    {$set: record},
+                    {upsert: true},
+                    (err, result) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(result.modifiedCount);
+                            releaseDBConnection(client);
+                        }
+                    });
+        }, function (err) {
+            reject(err);
+        });
+    });
 }
