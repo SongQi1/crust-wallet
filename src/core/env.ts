@@ -28,7 +28,9 @@ const env = {
     MONGODB_POLL_IDLE_TIMEOUT: Number(process.env.MONGODB_POLL_IDLE_TIMEOUT),
 
     CRU_TXN_RECORD_DB: String(process.env.CRU_TXN_RECORD_DB),
-    CRU_TXN_RECORD_COLLECTION: String(process.env.CRU_TXN_RECORD_COLLECTION)
+    CRU_TXN_RECORD_COLLECTION: String(process.env.CRU_TXN_RECORD_COLLECTION),
+
+    SHOW_INSERT_RECORD: Boolean(process.env.SHOW_INSERT_RECORD)
 };
 
 logger.info(`配置加载完成:${toJsonString(env)}`);

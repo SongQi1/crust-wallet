@@ -65,7 +65,7 @@ export const startBlocksSchedule = (): void => {
 
         const requestArray: any = [];
         for (let i = startHeight; i <= endHeight; ++i) {
-            requestArray.push(scanner.getBlockDetail({blockNumber: startHeight}))
+            requestArray.push(scanner.getBlockDetail({blockNumber: startHeight})
                 .then((block: Block) => {
                     return new Promise((resolve, reject) => {
                         // 遍历交易列表
@@ -77,28 +77,36 @@ export const startBlocksSchedule = (): void => {
                                 blockTimestamp: block.timestamp,
                                 author: block.author
                             })
+
+                            if (env.SHOW_INSERT_RECORD) {
+                                // 不存在则插入，存在则更新
+                                logger.info(`数据库执行插入记录:${toJsonString(record)}`);
+                            }
+
                             // 获取数据库连接
                             const connection = getDBConnection();
                             connection.then(function (client) {
                                 // 获取连接成功
                                 const conn = client.db(env.CRU_TXN_RECORD_DB).collection(env.CRU_TXN_RECORD_COLLECTION);
-                                conn.updateOne({hash: record.hash}, {$set: record}, (err, result) => {
+                                conn.updateOne({hash: record.hash}, {$set: record}, {upsert: true}, (err, result) => {
                                     if (err) {
+                                        logger.error(`数据库执行插入失败，错误信息:${err}`);
                                         reject(err)
                                     }
                                 });
                             }, function () {
                                 const error = '获取mongodb数据库连接失败，本次写入会失败，不更新位点，下次继续消费（连接池中已经处理了连接获取失败后的重试，根据生产运行情况调整连接池参数）';
-                                logger.warn(error);
+                                logger.error(error);
                                 reject(new Error(error));
                             });
                         });
                         // 所有处理成功才会OK
                         resolve(true);
                     });
-                });
+                }));
         }
         await Promise.all(requestArray as [Promise<void>]).then(() => {
+            logger.info(`更新CRU同步位点：${endHeight + 1}`);
             // 所有执行成功，更新位点
             writeRecord(env.LOCUS_RECORD_FILE, toJsonString(<LocusRecord>{
                 locus: endHeight + 1
