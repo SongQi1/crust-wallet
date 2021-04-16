@@ -19,16 +19,16 @@ async function queryTxnByHash(txnHash: string): Promise<any> {
                     if (err) {
                         reject(err);
                     } else {
-                        resolve(result);
+                        if (result) {
+                            resolve(result);
+                        } else {
+                            reject(new Error('交易未找到，交易hash不存在或者交易暂时未同步到线下，请耐心等待'));
+                        }
                     }
                     releaseDBConnection(client);
                 });
         }, function (err) {
             reject(err);
         });
-    }).then((result) => {
-        if (!result) {
-            throw new Error('交易未找到，交易hash不存在或者交易暂时未同步到线下，请耐心等待');
-        }
     });
 }
