@@ -127,8 +127,8 @@ async function asyncSaveRecord(record: any): Promise<any> {
                             reject(err);
                         } else {
                             resolve(result);
-                            releaseDBConnection(client);
                         }
+                        releaseDBConnection(client);
                     });
         }, function (err) {
             reject(err);
