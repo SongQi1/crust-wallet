@@ -21,6 +21,9 @@ export const local = {
  * @param queryParams
  */
 async function queryTxnList(queryParams: any): Promise<any> {
+    if (!queryParams || !queryParams.hash || !queryParams.blockNumber) {
+        throw new Error('查询交易列表必须包含交易hash或者区块高度信息');
+    }
     return new Promise((resolve, reject) => {
         acquireDBConnection().then(function (client) {
             client.db(env.CRU_TXN_RECORD_DB)
