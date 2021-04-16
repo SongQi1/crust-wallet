@@ -65,7 +65,7 @@ export const startBlocksSchedule = (): void => {
 
         const requestArray: Array<Promise<any>> = [];
         for (let i = startHeight; i <= endHeight; ++i) {
-            requestArray.push(scanner.getBlockDetail({blockNumber: startHeight}).then((block) =>
+            requestArray.push(scanner.getBlockDetail({blockNumber: i}).then((block) =>
                 block.extrinsics?.map((extrinsic) =>
                     Object.assign(extrinsic, {
                         blockNumber: block.number,
