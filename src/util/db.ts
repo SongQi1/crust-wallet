@@ -39,6 +39,6 @@ export function createMongodbPool(): Pool<MongoClient> {
         idleTimeoutMillis: env.MONGODB_POLL_IDLE_TIMEOUT
     })
     logger.info('初始化MongoDB数据库连接池');
-    pool.start();
+    //pool.start();
     return pool;
 }
