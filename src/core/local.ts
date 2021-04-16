@@ -8,8 +8,43 @@ export const local = {
             res.json(await queryTxnByHash(req.body['txnHash']));
         }, next)
     },
+    queryTxnList: (req: Request, res: Response, next: NextFunction) => {
+        withSimple(async () => {
+            res.json(await queryTxnList(req.body['queryParams']));
+        }, next)
+    },
 }
 
+/**
+ * 根据查询参数获取交易列表
+ *
+ * @param queryParams
+ */
+async function queryTxnList(queryParams: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+        acquireDBConnection().then(function (client) {
+            client.db(env.CRU_TXN_RECORD_DB)
+                .collection(env.CRU_TXN_RECORD_COLLECTION)
+                .find(queryParams || {})
+                .toArray((err, docs) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(docs);
+                    }
+                    releaseDBConnection(client);
+                });
+        }, function (err) {
+            reject(err);
+        });
+    });
+}
+
+/**
+ * 根据交易hash获取交易详情
+ *
+ * @param txnHash
+ */
 async function queryTxnByHash(txnHash: string): Promise<any> {
     return new Promise((resolve, reject) => {
         acquireDBConnection().then(function (client) {

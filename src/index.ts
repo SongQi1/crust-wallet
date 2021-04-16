@@ -57,6 +57,7 @@ async function startHttpServer() {
     app.post('/api/v1/wallet/balance', wallet.balance);
     app.post('/api/v1/trade/transfer', trade.transfer);
     app.post('/api/v1/local/txn/query', local.queryTxnByHash);
+    app.post('/api/v1/local/txn/list', local.queryTxnList);
 
     // 异常处理
     app.use(errorHandler);
