@@ -20,8 +20,8 @@ async function queryTxnByHash(txnHash: string): Promise<any> {
                         reject(err);
                     } else {
                         resolve(result);
-                        releaseDBConnection(client);
                     }
+                    releaseDBConnection(client);
                 });
         }, function (err) {
             reject(err);

@@ -33,12 +33,9 @@ class MongodbFactory implements Factory<MongoClient> {
 export function createMongodbPool(): Pool<MongoClient> {
     const pool = createPool(new MongodbFactory(), <Options>{
         max: env.MONGODB_POLL_MAX_SIZE,
-        min: env.MONGODB_POLL_MIN_SIZE,
-        maxWaitingClients: env.MONGODB_POOL_MAX_WAITING_SIZE,
-        acquireTimeoutMillis: env.MONGODB_POLL_ACQUIRE_TIMEOUT,
-        idleTimeoutMillis: env.MONGODB_POLL_IDLE_TIMEOUT
+        min: env.MONGODB_POLL_MIN_SIZE
     })
     logger.info('初始化MongoDB数据库连接池');
-    //pool.start();
+    pool.start();
     return pool;
 }
