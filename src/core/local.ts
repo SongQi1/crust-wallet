@@ -46,7 +46,8 @@ async function queryCurrentLocus(): Promise<number> {
                 reject(new Error('同步位点信息记录为空，请稍后再试'));
                 return;
             }
-            resolve(recordJson.locus);
+            // 比较保守，记录的位点是等待消费的，因此同步的位点记录为-1
+            resolve(recordJson.locus - 1);
         }).catch((error) => {
             reject(error);
         })
