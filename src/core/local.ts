@@ -1,6 +1,9 @@
 import {NextFunction, Request, Response} from "express";
 import {acquireDBConnection, releaseDBConnection, withSimple} from "./services";
 import {env} from "./env";
+import {readRecord} from "../util/record";
+import {logger} from "../util/logger";
+import {isEmpty, toJson} from "../util/string_utils";
 
 export const local = {
     queryTxnByHash: (req: Request, res: Response, next: NextFunction) => {
@@ -13,6 +16,41 @@ export const local = {
             res.json(await queryTxnList(req.body['queryParams']));
         }, next)
     },
+    queryCurrentLocus: (req: Request, res: Response, next: NextFunction) => {
+        withSimple(async () => {
+            res.json(await queryCurrentLocus());
+        }, next)
+    },
+}
+
+/**
+ * 获取当前同步到本地的位点
+ */
+async function queryCurrentLocus(): Promise<number> {
+    return new Promise((resolve, reject) => {
+        readRecord(env.LOCUS_RECORD_FILE).then((record) => {
+            if (isEmpty(record)) {
+                // 文件不存在
+                reject(new Error('同步位点信息不存在，请确认钱包服务正常启动，若正常启动，请稍后再试!'));
+                return;
+            }
+            let recordJson;
+            try {
+                recordJson = toJson(<string>record);
+            } catch (error) {
+                // 解析同步位点文件格式错误
+                reject(new Error('同步位点信息格式不正确，获取位点失败'));
+                return;
+            }
+            if (!recordJson || !recordJson.locus) {
+                reject(new Error('同步位点信息记录为空，请稍后再试'));
+                return;
+            }
+            resolve(recordJson.locus);
+        }).catch((error) => {
+            reject(error);
+        })
+    });
 }
 
 /**

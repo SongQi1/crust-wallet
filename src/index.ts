@@ -58,6 +58,7 @@ async function startHttpServer() {
     app.post('/api/v1/trade/transfer', trade.transfer);
     app.post('/api/v1/local/txn/query', local.queryTxnByHash);
     app.post('/api/v1/local/txn/list', local.queryTxnList);
+    app.post('/api/v1/local/locus', local.queryCurrentLocus);
 
     // 异常处理
     app.use(errorHandler);
