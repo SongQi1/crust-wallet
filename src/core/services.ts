@@ -1,5 +1,5 @@
 import {ApiPromise, WsProvider} from "@polkadot/api";
-import {env} from "./env";
+import {configs} from "./configs";
 import {types, typesBundleForPolkadot} from "@crustio/type-definitions";
 import Scanner from "@open-web3/scanner";
 import {logger} from "../util/logger";
@@ -28,7 +28,7 @@ let dbPool: Pool<MongoClient> = createMongodbPool();
  */
 export const init = () => {
     if (provider && provider.disconnect) {
-        logger.warn(`重新连接cru节点，连接地址:${env.SUBSTRATE_URL}`);
+        logger.warn(`重新连接cru节点，连接地址:${configs.SUBSTRATE_URL}`);
         provider.disconnect()
             .then(() => {
             })
@@ -86,7 +86,7 @@ export async function withApiReady(fn: Function, next: NextFunction) {
 }
 
 function newWsProvider() {
-    return new WsProvider(env.SUBSTRATE_URL);
+    return new WsProvider(configs.SUBSTRATE_URL);
 }
 
 function newApiPromise(provider: WsProvider) {

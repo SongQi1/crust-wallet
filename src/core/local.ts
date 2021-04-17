@@ -1,6 +1,6 @@
 import {NextFunction, Request, Response} from "express";
 import {acquireDBConnection, releaseDBConnection, withSimple} from "./services";
-import {env} from "./env";
+import {configs} from "./configs";
 import {readRecord} from "../util/record";
 import {isEmpty, toJson} from "../util/string_utils";
 
@@ -27,7 +27,7 @@ export const local = {
  */
 async function queryCurrentLocus(): Promise<any> {
     return new Promise((resolve, reject) => {
-        readRecord(env.LOCUS_RECORD_FILE).then((record) => {
+        readRecord(configs.LOCUS_RECORD_FILE).then((record) => {
             if (isEmpty(record)) {
                 // 文件不存在
                 reject(new Error('同步位点信息不存在，请确认钱包服务正常启动，若正常启动，请稍后再试!'));
@@ -64,8 +64,8 @@ async function queryTxnList(queryParams: any): Promise<any> {
     }
     return new Promise((resolve, reject) => {
         acquireDBConnection().then(function (client) {
-            client.db(env.CRU_TXN_RECORD_DB)
-                .collection(env.CRU_TXN_RECORD_COLLECTION)
+            client.db(configs.CRU_TXN_RECORD_DB)
+                .collection(configs.CRU_TXN_RECORD_COLLECTION)
                 .find(queryParams || {})
                 .toArray((err, docs) => {
                     if (err) {
@@ -89,8 +89,8 @@ async function queryTxnList(queryParams: any): Promise<any> {
 async function queryTxnByHash(txnHash: string): Promise<any> {
     return new Promise((resolve, reject) => {
         acquireDBConnection().then(function (client) {
-            client.db(env.CRU_TXN_RECORD_DB)
-                .collection(env.CRU_TXN_RECORD_COLLECTION)
+            client.db(configs.CRU_TXN_RECORD_DB)
+                .collection(configs.CRU_TXN_RECORD_COLLECTION)
                 .findOne({hash: txnHash}, (err, result) => {
                     if (err) {
                         reject(err);

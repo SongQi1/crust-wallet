@@ -3,7 +3,7 @@ import {Request, Response} from 'express';
 import * as bodyParser from 'body-parser';
 import timeout from 'connect-timeout';
 import {logger} from "./util/logger";
-import {env} from "./core/env";
+import {configs} from "./core/configs";
 import * as services from './core/services';
 import {wallet} from "./core/wallet";
 import {trade} from "./core/trade";
@@ -44,13 +44,13 @@ async function startHttpServer() {
         next();
     };
 
-    app.use(bodyParser.json({limit: env.HTTP_PARAMETER_LIMIT}));
-    app.use(bodyParser.urlencoded({limit: env.HTTP_PARAMETER_LIMIT, extended: true}));
+    app.use(bodyParser.json({limit: configs.HTTP_PARAMETER_LIMIT}));
+    app.use(bodyParser.urlencoded({limit: configs.HTTP_PARAMETER_LIMIT, extended: true}));
     app.use(bodyParser.json());
     app.use(responseHandler);
 
     // 超时处理
-    app.use(timeout(env.HTTP_TIMEOUT));
+    app.use(timeout(configs.HTTP_TIMEOUT));
 
     // 设置路由
     app.post('/api/v1/wallet/generate', wallet.generate);
@@ -67,8 +67,8 @@ async function startHttpServer() {
         errorHandler(err, null, null, null);
     });
 
-    app.listen(env.PORT, () => {
-        logger.info(`crust-wallet启动监听端口:${env.PORT}，连接crust节点地址：${env.SUBSTRATE_URL}`);
+    app.listen(configs.PORT, () => {
+        logger.info(`crust-wallet启动监听端口:${configs.PORT}，连接crust节点地址：${configs.SUBSTRATE_URL}`);
     });
 }
 
