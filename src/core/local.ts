@@ -2,7 +2,6 @@ import {NextFunction, Request, Response} from "express";
 import {acquireDBConnection, releaseDBConnection, withSimple} from "./services";
 import {env} from "./env";
 import {readRecord} from "../util/record";
-import {logger} from "../util/logger";
 import {isEmpty, toJson} from "../util/string_utils";
 
 export const local = {
@@ -26,7 +25,7 @@ export const local = {
 /**
  * 获取当前同步到本地的位点
  */
-async function queryCurrentLocus(): Promise<number> {
+async function queryCurrentLocus(): Promise<any> {
     return new Promise((resolve, reject) => {
         readRecord(env.LOCUS_RECORD_FILE).then((record) => {
             if (isEmpty(record)) {
@@ -47,7 +46,7 @@ async function queryCurrentLocus(): Promise<number> {
                 return;
             }
             // 比较保守，记录的位点是等待消费的，因此同步的位点记录为-1
-            resolve(recordJson.locus - 1);
+            resolve({locus: recordJson.locus - 1});
         }).catch((error) => {
             reject(error);
         })
