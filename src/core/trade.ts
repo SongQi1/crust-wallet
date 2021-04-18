@@ -1,13 +1,14 @@
 import {NextFunction, Request, Response} from "express";
-import {withApiReady} from "./services";
+import {getScanner, withApiReady} from "./services";
 import {ApiPromise} from "@polkadot/api";
 import {cryptoWaitReady} from "@polkadot/util-crypto";
 import {Keyring} from "@polkadot/keyring";
-import {base64ToJson} from "../util/string_utils";
+import {base64ToJson, isEmpty} from "../util/string_utils";
 import {SubmittableExtrinsic} from "@polkadot/api/promise/types";
 import {AddressOrPair} from "@polkadot/api/submittable/types";
 import {logger} from "../util/logger";
 import {ExtrinsicStatus} from "@polkadot/types/interfaces/author";
+import {asyncGetBlockTrades, asyncSaveRecord} from "./sync_block";
 
 export const trade = {
     transfer: (req: Request, res: Response, next: NextFunction) => {
@@ -20,6 +21,85 @@ export const trade = {
             }));
         }, next)
     },
+    recovery: (req: Request, res: Response, next: NextFunction) => {
+        withApiReady(async (api: ApiPromise) => {
+            res.json(await recovery({
+                startHeight: req.body['startHeight'],
+                endHeight: req.body['endHeight']
+            }));
+        }, next)
+    }
+}
+
+interface RecoveryRequest {
+    startHeight: number,
+    endHeight: number
+}
+
+interface RecoveryResult {
+    startHeight: number,
+    endHeight: number,
+    status: string,
+    message: string
+}
+
+/**
+ * 根据高度区间段查询交易并保存
+ *
+ * @param request
+ */
+async function recovery(request: RecoveryRequest): Promise<RecoveryResult> {
+    return new Promise<any>((resolve, reject) => {
+        const startHeight = request.startHeight
+            , endHeight = request.endHeight;
+
+        if (startHeight > endHeight) {
+            reject(new Error('请求报文异常，startHeight必须小于等于endHeight'));
+            return;
+        }
+
+        const scanner = getScanner();
+        if (scanner && !scanner.wsProvider.isConnected) {
+            reject(new Error('CRU链的连接状态异常，请联系管理员'));
+            return;
+        }
+
+        scanner.wsProvider.isReady.then(() => {
+            asyncGetBlockTrades(scanner, startHeight, endHeight).then((records) => {
+                const saveArray: Array<Promise<any>> = [];
+                for (let i = 0; i <= records.length; ++i) {
+                    const record: any = records[i];
+                    if (!record || isEmpty(record.hash)) {
+                        continue;
+                    }
+                    saveArray.push(asyncSaveRecord(record));
+                }
+                Promise.all(saveArray).then(([...array]) => {
+                    if (startHeight == endHeight) {
+                        resolve(<RecoveryResult>{
+                            startHeight: startHeight,
+                            endHeight: endHeight,
+                            status: 'success',
+                            message: `同步区块${startHeight}交易列表并保存到数据库成功，保存交易笔数${array.length}`
+                        });
+                    } else {
+                        resolve(<RecoveryResult>{
+                            startHeight: startHeight,
+                            endHeight: endHeight,
+                            status: 'success',
+                            message: `同步${startHeight}~${endHeight}区间区块交易列表并保存到数据库成功，保存交易笔数${array.length}`
+                        });
+                    }
+                }).catch((error) => {
+                    reject(error);
+                });
+            }).catch((error) => {
+                reject(new Error(error));
+            });
+        }).catch((error) => {
+            reject(error);
+        })
+    });
 }
 
 interface TransferRequest {

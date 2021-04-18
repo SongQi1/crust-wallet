@@ -4,11 +4,12 @@ import {scheduleJob} from 'node-schedule';
 import {acquireDBConnection, getScanner, releaseDBConnection} from "./services";
 import {readRecord, writeRecord} from "../util/record";
 import {isEmpty, toJson, toJsonString} from "../util/string_utils";
+import Scanner from "@open-web3/scanner";
 
 /**
  * 开启监听CRU链交易信息
  */
-export const startBlocksSchedule = (): void => {
+export const startSyncBlockSchedule = (): void => {
     logger.info(`启动监听CRU链交易信息定时任务，监听地址:${configs.SUBSTRATE_URL}，监听CRON:${configs.NOTIFY_CRON}`);
 
     scheduleJob(configs.NOTIFY_CRON, async () => {
@@ -55,32 +56,12 @@ export const startBlocksSchedule = (): void => {
             endHeight = posMax;
         }
 
-        // 消费到最新高度
         if (startHeight > endHeight) {
             logger.info(`CRU链跟踪消费已经到最新高度${startHeight}，本伦次不处理`);
             return;
         }
 
-        logger.info(`CRU开始加载${startHeight}~${endHeight}之间的交易消息`);
-
-        const requestArray: Array<Promise<any>> = [];
-        for (let i = startHeight; i <= endHeight; ++i) {
-            requestArray.push(scanner.getBlockDetail({blockNumber: i}).then((block) =>
-                block.extrinsics?.map((extrinsic) =>
-                    Object.assign(extrinsic, {
-                        blockNumber: block.number,
-                        blockHash: block.hash,
-                        blockTimestamp: block.timestamp,
-                        author: block.author
-                    })
-                )
-            ));
-        }
-
-        Promise.all(requestArray).then(([...array]) => {
-            // 二维降为一维
-            const records = [].concat(...array);
-
+        asyncGetBlockTrades(scanner, startHeight, endHeight).then((records) => {
             const saveArray: Array<Promise<any>> = [];
             for (let i = 0; i <= records.length; ++i) {
                 const record: any = records[i];
@@ -98,9 +79,57 @@ export const startBlocksSchedule = (): void => {
             }).catch((error) => {
                 logger.error(`交易记录保存失败，不更新位点，错误信息：${error}`);
             });
+        }).catch((error) => {
+            logger.error(`同步区块交易信息失败，错误信息：${error}`);
         });
     });
 };
+
+/**
+ * 根据指定start、end同步数据
+ * 如果start和end相同，则仅同步该索引块数据
+ * 若start大于end，则返回[]
+ *
+ * @param scanner
+ * @param startHeight
+ * @param endHeight
+ */
+export async function asyncGetBlockTrades(scanner: Scanner, startHeight: number, endHeight: number): Promise<[]> {
+    if (startHeight > endHeight) {
+        return [];
+    }
+
+    if (startHeight == endHeight) {
+        logger.info(`CRU开始加载${startHeight}区块的交易消息`);
+    } else {
+        logger.info(`CRU开始加载${startHeight}~${endHeight}之间区块的交易消息`);
+    }
+
+    return new Promise<any>((resolve, reject) => {
+        scanner.wsProvider.isReady.then(function () {
+            const requestArray: Array<Promise<any>> = [];
+            for (let i = startHeight; i <= endHeight; ++i) {
+                requestArray.push(scanner.getBlockDetail({blockNumber: i}).then((block) =>
+                    block.extrinsics?.map((extrinsic) =>
+                        Object.assign(extrinsic, {
+                            blockNumber: block.number,
+                            blockHash: block.hash,
+                            blockTimestamp: block.timestamp,
+                            author: block.author
+                        })
+                    )
+                ));
+            }
+            Promise.all(requestArray).then(([...array]) => {
+                resolve([].concat(...array));
+            }).catch((error) => {
+                reject(error);
+            });
+        }).catch((error) => {
+            reject(error);
+        });
+    });
+}
 
 /**
  * 位点记录结构
@@ -114,7 +143,7 @@ interface LocusRecord {
  *
  * @param record
  */
-async function asyncSaveRecord(record: any): Promise<any> {
+export async function asyncSaveRecord(record: any): Promise<any> {
     return new Promise<any>((resolve, reject) => {
         acquireDBConnection().then(function (client) {
             client.db(configs.CRU_TXN_RECORD_DB)

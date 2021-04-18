@@ -7,7 +7,7 @@ import {configs} from "./core/configs";
 import * as services from './core/services';
 import {wallet} from "./core/wallet";
 import {trade} from "./core/trade";
-import {startBlocksSchedule} from "./core/listener";
+import {startSyncBlockSchedule} from "./core/sync_block";
 import {local} from "./core/local";
 
 async function startHttpServer() {
@@ -75,7 +75,7 @@ async function startHttpServer() {
 startHttpServer().then(() => {
     logger.info('HTTP服务启动完成');
     // 开启轮询获取block信息，然后写入到mongodb数据库中
-    startBlocksSchedule();
+    startSyncBlockSchedule();
 }).catch((error) => {
     logger.error(`HTTP服务启动失败，错误信息:${error}`);
 });
