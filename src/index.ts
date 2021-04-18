@@ -56,6 +56,7 @@ async function startHttpServer() {
     app.post('/api/v1/wallet/generate', wallet.generate);
     app.post('/api/v1/wallet/balance', wallet.balance);
     app.post('/api/v1/trade/transfer', trade.transfer);
+    app.post('/api/v1/trade/recovery', trade.recovery);
     app.post('/api/v1/local/txn/query', local.queryTxnByHash);
     app.post('/api/v1/local/txn/list', local.queryTxnList);
     app.post('/api/v1/local/locus', local.queryCurrentLocus);
