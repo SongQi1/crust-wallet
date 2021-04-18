@@ -50,11 +50,20 @@ interface RecoveryResult {
  */
 async function recovery(request: RecoveryRequest): Promise<RecoveryResult> {
     return new Promise<any>((resolve, reject) => {
-        const startHeight = request.startHeight
+        let startHeight = request.startHeight
             , endHeight = request.endHeight;
 
+        if (!startHeight || startHeight <= 0) {
+            reject(new Error('请求报文异常，startHeight必须为正整数'));
+            return;
+        }
+
+        if (!endHeight) {
+            endHeight = startHeight;
+        }
+
         if (startHeight > endHeight) {
-            reject(new Error('请求报文异常，startHeight必须小于等于endHeight'));
+            reject(new Error('请求报文异常，endHeight必须为正整数且startHeight必须小于等于endHeight'));
             return;
         }
 
